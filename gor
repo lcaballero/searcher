@@ -1,0 +1,39 @@
+#!/bin/bash
+
+function tests() {
+	go test --race $(go list ./... | grep -v vendor)
+}
+
+function benches() {
+	go test -bench=. $(go list ./... | grep -v vendor)
+}
+
+function convey() {
+  goconvey -excludedDirs ./vendor -port 2222 .
+}
+
+# profile() runs go test profiling for each non vendor package outputing
+# the coverage profile to .profile (making .profile/ if it doesn't exist).
+function profile() {
+	mkdir -p .profile
+	dest=".profile"
+	packages=$(go list ./... | grep -v vendor)
+	for pkg in $packages; do
+		p=${pkg//\//.}  # replaces ALL '/' with '.'
+		go test -coverprofile "$dest/$p.out" "$pkg"
+    done
+}
+
+# cover() does one of two things, if a cover output file is not given
+# then cover() lists the contents of the .profile/ directory from which
+# to choose a cover file.
+function cover() {
+	local pkg=$1
+	if [[ "$pkg" == "" ]]; then
+		ls -1 .profile
+	else
+		go tool cover -html "$pkg"
+	fi
+}
+
+$1 $2
